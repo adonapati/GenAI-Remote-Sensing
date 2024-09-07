@@ -6,7 +6,7 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       appBar: AppBar(
         elevation: 0,
@@ -18,87 +18,81 @@ class LoginPage extends StatelessWidget {
           },
         ),
       ),
-      body: SizedBox(
-        height: MediaQuery.of(context).size.height,
-        width: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      body: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          height: MediaQuery.of(context).size.height - 50,
+          width: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Column(
                 children: [
-                  Column(
-                    children: [
-                      const Text("Welcome back.", style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                      ),),
-                      const SizedBox(height: 10,),
-                      Text("Login to your account", style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 15,
-                      ),),
-                    ],
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40,vertical: 100),
-                    child: Column(
-                      children: [
-                        makeInput(label: "Email/Phone number"),
-                        makeInput(label: "Password", obscureText: true),
-                      ],
+                  const Text("Welcome Back.", style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),),
+                  const SizedBox(height: 20,),
+                  Text("Login to your account", style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 15,
+                  ),),
+                ],
+              ),
+              Column(
+                children: [
+                  makeInput(label: "Email/Phone number"),
+                  makeInput(label: "Password", obscureText: true),
+                ],
+              ),
+                            
+              Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(50),
+                      border: const Border(
+                        bottom: BorderSide(color: Colors.black),
+                        top: BorderSide(color: Colors.black),
+                        left: BorderSide(color: Colors.black),
+                        right: BorderSide(color: Colors.black),
+                      )
                     ),
-                  ),
-              
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(50),
-                        border: const Border(
-                          bottom: BorderSide(color: Colors.black),
-                          top: BorderSide(color: Colors.black),
-                          left: BorderSide(color: Colors.black),
-                          right: BorderSide(color: Colors.black),
-                        )
+                    child: MaterialButton(
+                      minWidth: double.infinity,
+                      height: 60,
+                      onPressed: () {},
+                      color: const Color.fromARGB(255, 29, 81, 111),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50)
                       ),
-                      child: MaterialButton(
-                        minWidth: double.infinity,
-                        height: 60,
-                        onPressed: () {},
-                        color: const Color.fromARGB(255, 29, 81, 111),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50)
-                        ),
-                        child: const Text("Login", style: TextStyle(
+                      child: const Text("Request OTP", style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 18
-                        ),),
-                      ),
-                    )
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 0.5),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("Don't have an account?"),
-                        Text(
-                          " Sign Up.",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
+                      ),),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const Padding(
+                padding: EdgeInsets.only(top: 10.0), // Add padding here
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Already have an account?"),
+                    Text(
+                      " Login.",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -126,7 +120,7 @@ class LoginPage extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10,),
+        const SizedBox(height: 30,),
       ],
     );
   }
