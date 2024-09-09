@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "594684793351",
+    "project_id": "remotesensing-0ae21",
+    "storage_bucket": "remotesensing-0ae21.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:594684793351:android:1d98894428350acf0310a2",
+        "android_client_info": {
+          "package_name": "com.example.remote_sensi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2SC96d53Siu9iqRtfAUuczZ2aTknEvU8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
