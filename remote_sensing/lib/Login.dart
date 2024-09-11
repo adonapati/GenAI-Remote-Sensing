@@ -41,7 +41,7 @@ class LoginPage extends StatelessWidget {
               ),
               Column(
                 children: [
-                  makeInput(label: "Email/Phone number"),
+                  makeInput(label: "Username"),
                   makeInput(label: "Password", obscureText: true),
                 ],
               ),
@@ -67,7 +67,7 @@ class LoginPage extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(50)
                       ),
-                      child: const Text("Request OTP", style: TextStyle(
+                      child: const Text("Login", style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 18
@@ -77,13 +77,13 @@ class LoginPage extends StatelessWidget {
                 ],
               ),
               const Padding(
-                padding: EdgeInsets.only(top: 10.0), // Add padding here
+                padding: EdgeInsets.only(top: 10.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Already have an account?"),
+                    Text("Don't have an account?"),
                     Text(
-                      " Login.",
+                      " Sign up.",
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                       ),

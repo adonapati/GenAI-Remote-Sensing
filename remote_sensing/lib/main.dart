@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:remote_sensing/HomePage.dart';
 import 'package:remote_sensing/Login.dart';
 import 'package:remote_sensing/Signup.dart';
 
@@ -6,13 +7,13 @@ void main() {
   runApp (
     const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      home: MyApp(),
     )
   );
 }
 
-class HomePage extends StatelessWidget{
-  const HomePage({super.key});
+class MyApp extends StatelessWidget{
+  const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
