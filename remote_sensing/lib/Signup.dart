@@ -14,6 +14,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   final List<TextEditingController> _otpControllers =
@@ -54,45 +55,58 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-  // Back button builder
-  Widget buildBackButton() {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.black),
-        onPressed: () {
-          prevStep();
-        },
-      ),
-    );
-  }
-
   // Step 1: Email Input
   Widget emailInputStep() {
-    return buildStepContent(
-      "Enter Email",
-      Column(
-        children: [
-          makeInput(label: "Email", controller: _emailController),
-          buildNextButton(() {
-            nextStep();
-          }),
-        ],
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            prevStep(); // Navigate back to phone input step
+          },
+        ),
+        title: const Text("Email"),
+      ),
+      backgroundColor: Colors.white,
+      body: buildStepContent(
+        "Enter Email",
+        Column(
+          children: [
+            makeInput(label: "Email", controller: _emailController),
+            buildNextButton(() {
+              nextStep();
+            }),
+          ],
+        ),
       ),
     );
   }
 
   // Step 2: Phone Input (Trigger OTP)
   Widget phoneInputStep() {
-    return buildStepContent(
-      "Enter Phone Number",
-      Column(
-        children: [
-          makeInput(label: "Phone Number", controller: _phoneController),
-          buildNextButton(() {
-            _verifyPhoneNumber(); // Trigger Firebase OTP sending
-          }),
-        ],
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            prevStep(); // Navigate back to phone input step
+          },
+        ),
+        title: const Text("Phone number"),
+      ),
+      backgroundColor: Colors.white,
+      body: buildStepContent(
+        "Enter Phone Number",
+        Column(
+          children: [
+            makeInput(label: "Phone Number", controller: _phoneController),
+            buildNextButton(() {
+              _verifyPhoneNumber(); // Trigger Firebase OTP sending
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -100,12 +114,21 @@ class _SignupPageState extends State<SignupPage> {
   // Step 3: OTP Verification Step
   Widget otpVerificationStep(String title, String subtitle) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            prevStep(); // Navigate back to phone input step
+          },
+        ),
+        title: const Text("OTP Verification"),
+      ),
       backgroundColor: Colors.white,
       body: buildStepContent(
         title,
         Column(
           children: [
-            buildBackButton(), // Back button to go back to the previous step
             Text(
               subtitle,
               style: const TextStyle(
@@ -173,6 +196,16 @@ class _SignupPageState extends State<SignupPage> {
   // Step 4: User Details (name, password)
   Widget userDetailsStep() {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            prevStep(); // Navigate back to OTP verification step
+          },
+        ),
+        title: const Text("User Details"),
+      ),
       resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: Padding(
@@ -181,7 +214,6 @@ class _SignupPageState extends State<SignupPage> {
           child: SafeArea(
             child: Column(
               children: [
-                buildBackButton(), // Back button to go back to the previous step (OTP verification)
                 const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.center,
@@ -195,6 +227,7 @@ class _SignupPageState extends State<SignupPage> {
                 ),
                 const SizedBox(height: 20),
                 makeInput(label: "Full Name", controller: _nameController),
+                makeInput(label: "Address", controller: _addressController, obscureText: true),
                 makeInput(label: "Password", controller: _passwordController, obscureText: true),
                 makeInput(label: "Confirm Password", controller: _confirmPasswordController, obscureText: true),
                 const SizedBox(height: 20),
@@ -305,9 +338,9 @@ class _SignupPageState extends State<SignupPage> {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ButtonStyle(
-          foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
-          backgroundColor: MaterialStateProperty.all<Color>(const Color.fromARGB(255, 29, 81, 111)),
-          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+          foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
+          backgroundColor: WidgetStateProperty.all<Color>(const Color.fromARGB(255, 29, 81, 111)),
+          shape: WidgetStateProperty.all<RoundedRectangleBorder>(
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
           ),
         ),
