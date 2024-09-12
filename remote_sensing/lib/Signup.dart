@@ -1,8 +1,12 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class SignupPage extends StatefulWidget {
-  const SignupPage({super.key});
+  const SignupPage({Key? key}) : super(key: key);
 
   @override
   _SignupPageState createState() => _SignupPageState();
@@ -10,7 +14,6 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final PageController _pageController = PageController(initialPage: 0);
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
@@ -18,16 +21,23 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   final List<TextEditingController> _otpControllers =
-    List.generate(6, (index) => TextEditingController());
+      List.generate(6, (index) => TextEditingController());
 
   int _currentStep = 0;
-  String _verificationId = ''; // Store the verification ID for OTP
+
+  // Vonage API credentials
+  final String nexmoApiKey = '5d7c81d9';
+  final String nexmoApiSecret = 'R0WSChV6DnAjKhHO';
+  final String nexmoFromNumber = 'Nexmo';
+
+  String _generatedOtp = '';
+
 
   void _onOtpChange(String value, int index) {
     if (value.isNotEmpty && index < 5) {
-      FocusScope.of(context).nextFocus(); // Move focus to the next field
+      FocusScope.of(context).nextFocus();
     } else if (value.isEmpty && index > 0) {
-      FocusScope.of(context).previousFocus(); // Move focus to the previous field
+      FocusScope.of(context).previousFocus();
     }
   }
 
@@ -55,7 +65,6 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
-  // Step 1: Email Input
   Widget emailInputStep() {
     return Scaffold(
       appBar: AppBar(
@@ -63,7 +72,7 @@ class _SignupPageState extends State<SignupPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            prevStep(); // Navigate back to phone input step
+            prevStep(); 
           },
         ),
         title: const Text("Email"),
@@ -83,43 +92,14 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // Step 2: Phone Input (Trigger OTP)
-  Widget phoneInputStep() {
+  Widget emailOtpVerificationStep(String title, String subtitle) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            prevStep(); // Navigate back to phone input step
-          },
-        ),
-        title: const Text("Phone number"),
-      ),
-      backgroundColor: Colors.white,
-      body: buildStepContent(
-        "Enter Phone Number",
-        Column(
-          children: [
-            makeInput(label: "Phone Number", controller: _phoneController),
-            buildNextButton(() {
-              _verifyPhoneNumber(); // Trigger Firebase OTP sending
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Step 3: OTP Verification Step
-  Widget otpVerificationStep(String title, String subtitle) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            prevStep(); // Navigate back to phone input step
+            prevStep();
           },
         ),
         title: const Text("OTP Verification"),
@@ -153,6 +133,66 @@ class _SignupPageState extends State<SignupPage> {
             ),
             const SizedBox(height: 22),
             buildNextButton(() {
+              nextStep();
+            }, buttonText: "Verify"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget phoneInputStep() {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            prevStep(); 
+          },
+        ),
+        title: const Text("Phone number"),
+      ),
+      backgroundColor: Colors.white,
+      body: buildStepContent(
+        "Enter Phone Number",
+        Column(
+          children: [
+            makeInput(label: "Phone Number", controller: _phoneController),
+            buildNextButton(() {
+              _sendOtp(); 
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget otpVerificationStep() {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            prevStep(); // Navigate back to phone input step
+          },
+        ),
+        title: const Text("OTP Verification"),
+      ),
+      backgroundColor: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(6, (index) => _buildOtpField(index)),
+            ),
+            SizedBox(height: 20),
+            const SizedBox(height: 22),
+            buildNextButton(() {
               _verifyOtp(); // Verify the OTP entered by the user
             }, buttonText: "Verify"),
           ],
@@ -165,25 +205,18 @@ class _SignupPageState extends State<SignupPage> {
     return SizedBox(
       width: 40,
       child: TextField(
-        controller: _otpControllers[index], // Use individual controller for each field
-        autofocus: index == 0, // Auto-focus the first field
-        onChanged: (value) => _onOtpChange(value, index), // Move focus on input change
-        showCursor: false,
-        readOnly: false,
+        controller: _otpControllers[index],
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         keyboardType: TextInputType.number,
         maxLength: 1,
+        onChanged: (value) {
+          if (value.isNotEmpty && index < 5) {
+            FocusScope.of(context).nextFocus();
+          }
+        },
         decoration: InputDecoration(
-          counterText: '',
-          enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(width: 2, color: Colors.black12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(width: 2, color: Color.fromARGB(255, 29, 81, 111)),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          counterText: "",
+          border: OutlineInputBorder(),
         ),
       ),
     );
@@ -193,7 +226,6 @@ class _SignupPageState extends State<SignupPage> {
     return _otpControllers.map((controller) => controller.text).join();
   }
 
-  // Step 4: User Details (name, password)
   Widget userDetailsStep() {
     return Scaffold(
       appBar: AppBar(
@@ -201,97 +233,142 @@ class _SignupPageState extends State<SignupPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            prevStep(); // Navigate back to OTP verification step
+            prevStep();
           },
         ),
         title: const Text("User Details"),
       ),
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: SingleChildScrollView(
-          child: SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    "User Details",
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                makeInput(label: "Full Name", controller: _nameController),
-                makeInput(label: "Address", controller: _addressController, obscureText: true),
-                makeInput(label: "Password", controller: _passwordController, obscureText: true),
-                makeInput(label: "Confirm Password", controller: _confirmPasswordController, obscureText: true),
-                const SizedBox(height: 20),
-                buildNextButton(() {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Registration Complete!")),
-                  );
-                }, buttonText: "Register"),
-                const SizedBox(height: 40),
-              ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(labelText: "Full Name"),
             ),
-          ),
+            SizedBox(height: 16),
+            TextField(
+              controller: _addressController,
+              decoration: InputDecoration(labelText: "Address"),
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              decoration: InputDecoration(labelText: "Password"),
+              obscureText: true,
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: _confirmPasswordController,
+              decoration: InputDecoration(labelText: "Confirm Password"),
+              obscureText: true,
+            ),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _submitUserDetails,
+              child: Text("Submit"),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // Firebase Phone Authentication: Send OTP
-  void _verifyPhoneNumber() async {
-    await FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: _phoneController.text.trim(),
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await FirebaseAuth.instance.signInWithCredential(credential);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Phone number automatically verified")),
-        );
+  Future<void> _sendOtp() async {
+    final String phoneNumber = _phoneController.text.trim();
+    _generatedOtp = _generateOtp();
+
+    final response = await http.post(
+      Uri.parse('https://rest.nexmo.com/sms/json'),
+      headers: <String, String>{
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      verificationFailed: (FirebaseAuthException e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Verification failed: ${e.message}")),
-        );
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        _verificationId = verificationId;
-        nextStep(); // Proceed to OTP step
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        _verificationId = verificationId;
+      body: {
+        'api_key': nexmoApiKey,
+        'api_secret': nexmoApiSecret,
+        'to': phoneNumber,
+        'from': nexmoFromNumber,
+        'text': 'Your OTP is: $_generatedOtp',
       },
     );
-  }
 
-  // Firebase OTP Verification
-  void _verifyOtp() async {
-    String otpCode = getOtpCode(); // Collect OTP from all boxes
-    PhoneAuthCredential credential = PhoneAuthProvider.credential(
-      verificationId: _verificationId,
-      smsCode: otpCode,
-    );
-
-    try {
-      await FirebaseAuth.instance.signInWithCredential(credential);
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      if (responseData['messages'][0]['status'] == '0') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("OTP sent successfully")),
+        );
+        _pageController.nextPage(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to send OTP: ${responseData['messages'][0]['error-text']}")),
+        );
+      }
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Phone number verified successfully")),
-      );
-      nextStep(); // Proceed to user details step
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid OTP, try again")),
+        SnackBar(content: Text("Failed to send OTP. Please try again.")),
       );
     }
   }
 
-  // Input Field Builder
+  String _generateOtp() {
+    return (100000 + Random().nextInt(900000)).toString();
+  }
+
+  void _verifyOtp() {
+    String enteredOtp = _otpControllers.map((controller) => controller.text).join();
+    if (enteredOtp == _generatedOtp) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("OTP verified successfully")),
+      );
+      _pageController.nextPage(
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Invalid OTP. Please try again.")),
+      );
+    }
+  }
+
+  void _submitUserDetails() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Passwords do not match")),
+      );
+      return;
+    }
+
+    try {
+      // Create user with email and password
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: "${_phoneController.text}@example.com", // Using phone as email
+        password: _passwordController.text,
+      );
+
+      // Add user details to Firestore
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user?.uid).set({
+        'name': _nameController.text,
+        'phone': _phoneController.text,
+        'address': _addressController.text,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("User registered successfully")),
+      );
+      // Navigate to home or login page
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error during registration: $e")),
+      );
+    }
+  }
+  
   Widget makeInput({required String label, required TextEditingController controller, bool obscureText = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +393,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // Step Content Wrapper
   Widget buildStepContent(String title, Widget content) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -331,7 +407,6 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  // Next Button
   Widget buildNextButton(VoidCallback onPressed, {String buttonText = "Next"}) {
     return SizedBox(
       width: double.infinity,
@@ -357,12 +432,11 @@ class _SignupPageState extends State<SignupPage> {
     return Scaffold(
       body: PageView(
         controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
+        physics: NeverScrollableScrollPhysics(),
         children: [
-          emailInputStep(), // Step 1: Email
-          phoneInputStep(), // Step 2: Phone input and OTP sending
-          otpVerificationStep("Enter OTP", "Enter the 6-digit code sent to your phone"), // Step 3: OTP Verification
-          userDetailsStep(), // Step 4: User Details
+          phoneInputStep(),
+          otpVerificationStep(),
+          userDetailsStep(),
         ],
       ),
     );

@@ -1,7 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:remote_sensing/Login.dart';
-import 'package:remote_sensing/OtpPage.dart';
 import 'package:remote_sensing/Signup.dart';
 
 void main() async {
