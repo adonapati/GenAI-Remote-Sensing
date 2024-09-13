@@ -32,15 +32,6 @@ class _SignupPageState extends State<SignupPage> {
 
   String _generatedOtp = '';
 
-
-  void _onOtpChange(String value, int index) {
-    if (value.isNotEmpty && index < 5) {
-      FocusScope.of(context).nextFocus();
-    } else if (value.isEmpty && index > 0) {
-      FocusScope.of(context).previousFocus();
-    }
-  }
-
   void nextStep() {
     if (_currentStep < 4) {
       _pageController.nextPage(
@@ -238,6 +229,7 @@ class _SignupPageState extends State<SignupPage> {
         ),
         title: const Text("User Details"),
       ),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -265,10 +257,9 @@ class _SignupPageState extends State<SignupPage> {
               obscureText: true,
             ),
             SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _submitUserDetails,
-              child: Text("Submit"),
-            ),
+            buildNextButton(() {
+              _submitUserDetails();
+            }),
           ],
         ),
       ),
