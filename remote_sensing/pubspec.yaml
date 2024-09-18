@@ -40,6 +40,8 @@ dependencies:
   cloud_firestore: ^5.4.0
   http: ^0.13.4
   email_otp: ^1.0.4
+  mailer: ^6.1.2
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:

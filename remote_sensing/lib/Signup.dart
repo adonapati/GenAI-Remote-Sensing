@@ -5,7 +5,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:email_otp/email_otp.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
 import 'package:remote_sensing/HomePage.dart';
+import 'package:remote_sensing/config.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({Key? key}) : super(key: key);
@@ -28,8 +31,8 @@ class _SignupPageState extends State<SignupPage> {
   int _currentStep = 0;
   String _emailOtp = '';
 
-  final String nexmoApiKey = '5d7c81d9';
-  final String nexmoApiSecret = 'R0WSChV6DnAjKhHO';
+  final String nexmoApiKey = Config.nexmoApiKey;
+  final String nexmoApiSecret = Config.nexmoApiSecret;
   final String nexmoFromNumber = 'Nexmo';
 
   String _generatedOtp = '';
@@ -86,6 +89,23 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
+  Future<bool> sendEmail(String recipientEmail, String otp) async {
+    final smtpServer = gmail(Config.emailUsername, Config.emailPassword);
+    final message = Message()
+      ..from = Address(Config.emailUsername, 'Your App Name')
+      ..recipients.add(recipientEmail)
+      ..subject = 'Your OTP for SignUp'
+      ..text = 'Your OTP is: $otp';
+    try {
+      final sendReport = await send(message, smtpServer);
+      print('Message sent: ' + sendReport.toString());
+      return true;
+    } on MailerException catch (e) {
+      print('Message not sent. \n' + e.toString());
+      return false;
+    }
+  }
+
   void _sendEmailOtp() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
@@ -95,11 +115,17 @@ class _SignupPageState extends State<SignupPage> {
       return;
     }
     _emailOtp = (100000 + Random().nextInt(900000)).toString();
-    print("Email OTP: $_emailOtp");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("OTP sent to your email (check console for OTP)")),
-    );
-    nextStep();
+    bool emailSent = await sendEmail(email, _emailOtp);
+    if (emailSent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("OTP sent to your email")),
+      );
+      nextStep();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to send OTP. Please try again.")),
+      );
+    }
   }
 
   Widget emailOtpVerificationStep(String title, String subtitle) {
