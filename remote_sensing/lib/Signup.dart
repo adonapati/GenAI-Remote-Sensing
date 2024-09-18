@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:email_otp/email_otp.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:remote_sensing/HomePage.dart';
@@ -36,7 +35,6 @@ class _SignupPageState extends State<SignupPage> {
   final String nexmoFromNumber = 'Nexmo';
 
   String _generatedOtp = '';
-  EmailOTP myauth = EmailOTP();
 
   void nextStep() {
     if (_currentStep < 4) {
