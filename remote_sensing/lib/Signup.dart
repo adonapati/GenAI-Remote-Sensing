@@ -258,9 +258,7 @@ class _SignupPageState extends State<SignupPage> {
         keyboardType: TextInputType.number,
         maxLength: 1,
         onChanged: (value) {
-          if (value.isNotEmpty && index < 5) {
-            FocusScope.of(context).nextFocus();
-          }
+          _onOtpChange(value, index);
         },
         decoration: InputDecoration(
           counterText: "",
