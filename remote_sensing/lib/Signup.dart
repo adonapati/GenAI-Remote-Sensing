@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:email_otp/email_otp.dart';
+import 'package:remote_sensing/HomePage.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({Key? key}) : super(key: key);
@@ -24,13 +26,14 @@ class _SignupPageState extends State<SignupPage> {
       List.generate(6, (index) => TextEditingController());
 
   int _currentStep = 0;
+  String _emailOtp = '';
 
-  // Vonage API credentials
   final String nexmoApiKey = '5d7c81d9';
   final String nexmoApiSecret = 'R0WSChV6DnAjKhHO';
   final String nexmoFromNumber = 'Nexmo';
 
   String _generatedOtp = '';
+  EmailOTP myauth = EmailOTP();
 
   void nextStep() {
     if (_currentStep < 4) {
@@ -46,13 +49,13 @@ class _SignupPageState extends State<SignupPage> {
 
   void prevStep() {
     if (_currentStep > 0) {
+      setState(() {
+        _currentStep--;
+      });
       _pageController.previousPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeIn,
       );
-      setState(() {
-        _currentStep--;
-      });
     }
   }
 
@@ -75,12 +78,28 @@ class _SignupPageState extends State<SignupPage> {
           children: [
             makeInput(label: "Email", controller: _emailController),
             buildNextButton(() {
-              nextStep();
+              _sendEmailOtp();
             }),
           ],
         ),
       ),
     );
+  }
+
+  void _sendEmailOtp() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please enter an email address")),
+      );
+      return;
+    }
+    _emailOtp = (100000 + Random().nextInt(900000)).toString();
+    print("Email OTP: $_emailOtp");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("OTP sent to your email (check console for OTP)")),
+    );
+    nextStep();
   }
 
   Widget emailOtpVerificationStep(String title, String subtitle) {
@@ -124,12 +143,26 @@ class _SignupPageState extends State<SignupPage> {
             ),
             const SizedBox(height: 22),
             buildNextButton(() {
-              nextStep();
+              _verifyEmailOtp();
             }, buttonText: "Verify"),
           ],
         ),
       ),
     );
+  }
+
+  void _verifyEmailOtp() {
+    String enteredOtp = _otpControllers.map((controller) => controller.text).join();
+    if (enteredOtp == _emailOtp) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Email verified successfully")),
+      );
+      nextStep();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Invalid OTP. Please try again.")),
+      );
+    }
   }
 
   Widget phoneInputStep() {
@@ -166,7 +199,7 @@ class _SignupPageState extends State<SignupPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            prevStep(); // Navigate back to phone input step
+            prevStep();
           },
         ),
         title: const Text("OTP Verification"),
@@ -184,7 +217,7 @@ class _SignupPageState extends State<SignupPage> {
             SizedBox(height: 20),
             const SizedBox(height: 22),
             buildNextButton(() {
-              _verifyOtp(); // Verify the OTP entered by the user
+              _verifyOtp(); 
             }, buttonText: "Verify"),
           ],
         ),
@@ -259,6 +292,7 @@ class _SignupPageState extends State<SignupPage> {
             SizedBox(height: 24),
             buildNextButton(() {
               _submitUserDetails();
+              HomePage();
             }),
           ],
         ),
@@ -269,7 +303,6 @@ class _SignupPageState extends State<SignupPage> {
   Future<void> _sendOtp() async {
     final String phoneNumber = _phoneController.text.trim();
     _generatedOtp = _generateOtp();
-
     final response = await http.post(
       Uri.parse('https://rest.nexmo.com/sms/json'),
       headers: <String, String>{
@@ -283,7 +316,6 @@ class _SignupPageState extends State<SignupPage> {
         'text': 'Your OTP is: $_generatedOtp',
       },
     );
-
     if (response.statusCode == 200) {
       final responseData = json.decode(response.body);
       if (responseData['messages'][0]['status'] == '0') {
@@ -310,6 +342,14 @@ class _SignupPageState extends State<SignupPage> {
     return (100000 + Random().nextInt(900000)).toString();
   }
 
+  void _onOtpChange(String value, int index) {
+    if (value.isNotEmpty && index < 5) {
+      FocusScope.of(context).nextFocus();
+    } else if (value.isEmpty && index > 0) {
+      FocusScope.of(context).previousFocus();
+    }
+  }
+
   void _verifyOtp() {
     String enteredOtp = _otpControllers.map((controller) => controller.text).join();
     if (enteredOtp == _generatedOtp) {
@@ -334,25 +374,34 @@ class _SignupPageState extends State<SignupPage> {
       );
       return;
     }
-
     try {
-      // Create user with email and password
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: "${_phoneController.text}@example.com", // Using phone as email
+        email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-
-      // Add user details to Firestore
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user?.uid).set({
         'name': _nameController.text,
         'phone': _phoneController.text,
+        'email': _emailController.text.trim(),
         'address': _addressController.text,
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("User registered successfully")),
       );
-      // Navigate to home or login page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = "An error occurred during registration.";
+      if (e.code == 'weak-password') {
+        errorMessage = "The password provided is too weak.";
+      } else if (e.code == 'email-already-in-use') {
+        errorMessage = "An account already exists for this email.";
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error during registration: $e")),
@@ -425,6 +474,8 @@ class _SignupPageState extends State<SignupPage> {
         controller: _pageController,
         physics: NeverScrollableScrollPhysics(),
         children: [
+          emailInputStep(),
+          emailOtpVerificationStep("Email Verification", "Enter the OTP sent to your email"),
           phoneInputStep(),
           otpVerificationStep(),
           userDetailsStep(),
