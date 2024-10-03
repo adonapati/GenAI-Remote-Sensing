@@ -1,68 +1,75 @@
 from flask import Flask, request, jsonify
-import random
-import sendgrid
-from sendgrid.helpers.mail import Mail
-import firebase_admin
-from firebase_admin import firestore
-
-# Initialize Firebase
-cred = firebase_admin.credentials.Certificate('path/to/your-firebase-service-account.json')
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+from PIL import Image
+import torch
+import torch.nn as nn
+from torchvision import transforms, models
+import io
 
 app = Flask(__name__)
 
-# Function to generate a 6-digit OTP
-def generate_otp():
-    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+# Define your model architecture (same as before)
+class CropClassificationModel(nn.Module):
+    def __init__(self, num_classes=5):
+        super(CropClassificationModel, self).__init__()
+        self.features = models.vgg16(pretrained=True).features
+        for param in self.features.parameters():
+            param.requires_grad = False
+        for param in self.features[-6:].parameters():
+            param.requires_grad = True
+        
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * 7 * 7, 512),
+            nn.ReLU(),
+            nn.BatchNorm1d(512),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.Linear(256, num_classes)
+        )
 
-# Function to send OTP via email using SendGrid
-def send_otp_email(recipient_email, otp_code):
-    sg = sendgrid.SendGridAPIClient(api_key='your-sendgrid-api-key')
-    from_email = 'your-email@example.com'
-    subject = 'Your OTP Code'
-    content = f'Your OTP code is {otp_code}'
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
 
-    mail = Mail(
-        from_email=from_email,
-        to_emails=recipient_email,
-        subject=subject,
-        plain_text_content=content
-    )
+# Load the model (explicitly on CPU)
+device = torch.device('cpu')
+model = CropClassificationModel().to(device)
+model.load_state_dict(torch.load('crop_classification_model.pth', map_location=device))
+model.eval()
 
-    try:
-        response = sg.send(mail)
-        return response.status_code == 202
-    except Exception as e:
-        print(e)
-        return False
+# Define the transformation (same as before)
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
 
-@app.route('/send_otp', methods=['POST'])
-def send_otp():
-    data = request.json
-    email = data['email']
-    otp = generate_otp()
+# Define your class mapping (replace with your actual class names)
+idx_to_class = {0: 'class1', 1: 'class2', 2: 'class3', 3: 'class4', 4: 'class5'}
 
-    # Optionally store OTP in Firestore for verification
-    db.collection('otps').document(email).set({'otp': otp})
-
-    if send_otp_email(email, otp):
-        return jsonify({'message': 'OTP sent successfully'}), 200
-    else:
-        return jsonify({'message': 'Failed to send OTP'}), 500
-
-@app.route('/verify_otp', methods=['POST'])
-def verify_otp():
-    data = request.json
-    email = data['email']
-    otp_input = data['otp']
-
-    # Retrieve OTP from Firestore
-    otp_data = db.collection('otps').document(email).get()
-    if otp_data.exists and otp_data.to_dict()['otp'] == otp_input:
-        return jsonify({'message': 'OTP verified successfully'}), 200
-    else:
-        return jsonify({'message': 'Invalid OTP'}), 400
+@app.route('/classify', methods=['POST'])
+def classify_image():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image file provided'}), 400
+    
+    file = request.files['image']
+    image = Image.open(io.BytesIO(file.read())).convert('RGB')
+    
+    image = transform(image).unsqueeze(0)  # No need to send to device, it's already on CPU
+    
+    with torch.no_grad():
+        output = model(image)
+        _, predicted = torch.max(output, 1)
+    
+    predicted_class_index = predicted.item()
+    predicted_class_name = idx_to_class[predicted_class_index]
+    
+    return jsonify({
+        'class_index': predicted_class_index,
+        'class_name': predicted_class_name
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
