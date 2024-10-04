@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:remote_sensing/HomePage.dart';
 import 'package:remote_sensing/Login.dart';
 import 'package:remote_sensing/Signup.dart';
 
@@ -14,8 +16,26 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget{
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<User?>(
+      future: FirebaseAuth.instance.authStateChanges().first,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasData) {
+          return const HomePage(); // User is logged in
+        }
+        return const LoginPage(); // User is not logged in
+      },
+    );
+  }
+}
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,4 +129,3 @@ class MyApp extends StatelessWidget{
       ),
     );
   }
-}

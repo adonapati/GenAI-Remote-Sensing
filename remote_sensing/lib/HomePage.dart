@@ -3,6 +3,8 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:remote_sensing/Login.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -72,6 +74,16 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Function to log out the user
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    // Navigate back to LoginPage
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,65 +92,114 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, size: 20, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+        title: const Text(
+          'Home',
+          style: TextStyle(color: Colors.black),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.black),
+            onPressed: _logout, // Call the logout function
+          ),
+        ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 18),
-                const Text(
-                  'Home Page',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+      body: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          height: MediaQuery.of(context).size.height - 50,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Column(
+                children: [
+                  const Text(
+                    'Home Page',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Upload an image to classify it.",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black38,
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Upload an image to classify it.",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 15,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                _image == null
-                    ? const Text("No image selected.")
-                    : Image.file(_image!, height: 200),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.image),
-                  label: const Text("Select Image"),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _classifyImage,
-                  icon: const Icon(Icons.cloud_upload),
-                  label: const Text("Classify Image"),
-                ),
-                const SizedBox(height: 20),
-                if (_isLoading)
-                  const CircularProgressIndicator()
-                else if (_classificationResult != null)
-                  Text(
+                ],
+              ),
+              Column(
+                children: [
+                  _image == null
+                      ? const Text("No image selected.")
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Image.file(_image!, height: 200, fit: BoxFit.cover),
+                          ),
+                        ),
+                  const SizedBox(height: 20),
+                  makeButton("Select Image", Icons.image, _pickImage),
+                  const SizedBox(height: 20),
+                  makeButton("Classify Image", Icons.cloud_upload, _classifyImage),
+                ],
+              ),
+              if (_isLoading)
+                const CircularProgressIndicator()
+              else if (_classificationResult != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Text(
                     "Classification Result: $_classificationResult",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Create a button with consistent styling
+  Widget makeButton(String label, IconData icon, VoidCallback onPressed) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      child: Material(
+        elevation: 5, // Add elevation for shadow effect
+        borderRadius: BorderRadius.circular(50),
+        child: MaterialButton(
+          minWidth: double.infinity,
+          height: 60,
+          onPressed: onPressed,
+          color: const Color.fromARGB(255, 29, 81, 111),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              ),
+            ],
           ),
         ),
       ),
