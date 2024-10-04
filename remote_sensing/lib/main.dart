@@ -8,11 +8,11 @@ import 'package:remote_sensing/Signup.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp (
+  runApp(
     const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: MyApp(),
-    )
+    ),
   );
 }
 
@@ -28,14 +28,17 @@ class MyApp extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasData) {
-          return const HomePage(); // User is logged in
+          return const HomePage(); // If user is logged in, go to HomePage
         }
-        return const LoginPage(); // User is not logged in
+        return const WelcomePage(); // If not logged in, show WelcomePage
       },
     );
   }
 }
-  
+
+class WelcomePage extends StatelessWidget {
+  const WelcomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,33 +47,37 @@ class MyApp extends StatelessWidget {
         child: Container(
           width: double.infinity,
           height: MediaQuery.of(context).size.height,
-          padding: const EdgeInsets.symmetric(horizontal: 30,vertical: 50),
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Column(
                 children: [
-                  const Text("Remote Sensing", style: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    // fontWeight: FontWeight.bold,
-                    fontSize: 45
-                  ),),
-                  const SizedBox(height: 20,),
-                  Text("The colorization of SAR images for image interpretation",
-                  textAlign: TextAlign.center,
-                   style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 18
-                  ),),
+                  const Text(
+                    "Remote Sensing",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w400,
+                      fontSize: 45,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "The colorization of SAR images for image interpretation",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 18,
+                    ),
+                  ),
                 ],
               ),
               Container(
                 height: MediaQuery.of(context).size.height / 3,
                 decoration: const BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage('assets/illustration.png')
-                  )
+                    image: AssetImage('assets/illustration.png'),
+                  ),
                 ),
               ),
               Column(
@@ -79,20 +86,24 @@ class MyApp extends StatelessWidget {
                     minWidth: double.infinity,
                     height: 60,
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const LoginPage()),
+                      );
                     },
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(
-                        color: Colors.black
-                      ),
-                      borderRadius: BorderRadius.circular(50)
+                      side: const BorderSide(color: Colors.black),
+                      borderRadius: BorderRadius.circular(50),
                     ),
-                    child: const Text("Login", style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18
-                    ),),
+                    child: const Text(
+                      "Login",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 20,),
+                  const SizedBox(height: 20),
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(50),
@@ -101,31 +112,38 @@ class MyApp extends StatelessWidget {
                         top: BorderSide(color: Colors.black),
                         left: BorderSide(color: Colors.black),
                         right: BorderSide(color: Colors.black),
-                      )
+                      ),
                     ),
                     child: MaterialButton(
                       minWidth: double.infinity,
                       height: 60,
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SignupPage()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SignupPage()),
+                        );
                       },
                       color: const Color.fromARGB(255, 29, 81, 111),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50)
+                        borderRadius: BorderRadius.circular(50),
                       ),
-                      child: const Text("Sign Up", style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18
-                      ),),
+                      child: const Text(
+                        "Sign Up",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
                     ),
                   )
                 ],
-              )
+              ),
             ],
           ),
-        )
+        ),
       ),
     );
   }
+}

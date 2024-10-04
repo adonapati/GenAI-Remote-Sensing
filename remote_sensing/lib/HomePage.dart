@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:remote_sensing/Login.dart';
+import 'main.dart'; // Import the main.dart file to navigate back to MyApp
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -74,13 +74,14 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Function to log out the user
+  // Function to log out the user and navigate to the main screen
   Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    // Navigate back to LoginPage
-    Navigator.pushReplacement(
+    await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+    // Navigate back to the root (MyApp), which handles auth check
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
+      MaterialPageRoute(builder: (context) => const MyApp()), // Go to MyApp
+      (Route<dynamic> route) => false, // Remove all previous routes
     );
   }
 
