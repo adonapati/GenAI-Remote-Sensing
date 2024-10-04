@@ -4,8 +4,10 @@ import torch
 import torch.nn as nn
 from torchvision import transforms, models
 import io
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # Define your model architecture (same as before)
 class CropClassificationModel(nn.Module):
@@ -51,25 +53,28 @@ idx_to_class = {0: 'jute', 1: 'maize', 2: 'rice', 3: 'sugarcane', 4: 'wheat'}
 
 @app.route('/classify', methods=['POST'])
 def classify_image():
+    print("Received a request for classification")  # Add this to log incoming requests
     if 'image' not in request.files:
         return jsonify({'error': 'No image file provided'}), 400
     
     file = request.files['image']
-    image = Image.open(io.BytesIO(file.read())).convert('RGB')
+    print("Image received")  # Log that the image has been received
     
-    image = transform(image).unsqueeze(0)  # No need to send to device, it's already on CPU
-    
-    with torch.no_grad():
-        output = model(image)
-        _, predicted = torch.max(output, 1)
-    
-    predicted_class_index = predicted.item()
-    predicted_class_name = idx_to_class[predicted_class_index]
-    
-    return jsonify({
-        'class_index': predicted_class_index,
-        'class_name': predicted_class_name
-    })
+    try:
+        image = Image.open(io.BytesIO(file.read())).convert('RGB')
+        image = transform(image).unsqueeze(0)
+        with torch.no_grad():
+            output = model(image)
+            _, predicted = torch.max(output, 1)
+        predicted_class_index = predicted.item()
+        predicted_class_name = idx_to_class[predicted_class_index]
+        print(f"Classification result: {predicted_class_name}")  # Log the classification result
+        return jsonify({
+            'class name': predicted_class_name
+        })
+    except Exception as e:
+        print(f"Error during classification: {str(e)}")  # Log any errors during classification
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
