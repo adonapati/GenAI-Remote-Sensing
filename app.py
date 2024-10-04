@@ -46,8 +46,8 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Define your class mapping (replace with your actual class names)
-idx_to_class = {0: 'class1', 1: 'class2', 2: 'class3', 3: 'class4', 4: 'class5'}
+# Define your class mapping 
+idx_to_class = {0: 'jute', 1: 'maize', 2: 'rice', 3: 'sugarcane', 4: 'wheat'}
 
 @app.route('/classify', methods=['POST'])
 def classify_image():
