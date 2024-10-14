@@ -43,7 +43,7 @@ class _HomePageState extends State<HomePage> {
       _isLoading = true;
     });
     try {
-      final uri = Uri.parse('http://192.168.1.63:7080/classify');
+      final uri = Uri.parse(Config.ipAddress);
       var request = http.MultipartRequest('POST', uri)
         ..files.add(await http.MultipartFile.fromPath(
           'image', 
