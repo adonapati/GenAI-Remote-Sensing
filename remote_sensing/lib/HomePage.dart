@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'main.dart'; // Import the main.dart file to navigate back to MyApp
+import 'main.dart'; 
+import 'config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,25 +15,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  File? _image; // Store the selected image
-  String? _classificationResult; // Store the classification result
-  bool _isLoading = false; // Loading state for when the image is being classified
+  File? _image;
+  String? _classificationResult;
+  bool _isLoading = false;
 
   final ImagePicker _picker = ImagePicker();
 
-  // Function to pick an image from the gallery
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
-        _classificationResult = null; // Clear previous result
+        _classificationResult = null;
       });
     }
   }
 
-  // Function to upload the image to the backend and get classification
   Future<void> _classifyImage() async {
     if (_image == null) {
       setState(() {
@@ -44,7 +43,7 @@ class _HomePageState extends State<HomePage> {
       _isLoading = true;
     });
     try {
-      final uri = Uri.parse('http://192.168.1.140:5000/classify');
+      final uri = Uri.parse('http://172.16.20.60:7080/classify');
       var request = http.MultipartRequest('POST', uri)
         ..files.add(await http.MultipartFile.fromPath(
           'image', 
@@ -74,14 +73,12 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Function to log out the user and navigate to the main screen
   Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut(); // Sign out from Firebase
-    // Navigate back to the root (MyApp), which handles auth check
+    await FirebaseAuth.instance.signOut();
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const MyApp()), // Go to MyApp
-      (Route<dynamic> route) => false, // Remove all previous routes
+      MaterialPageRoute(builder: (context) => const MyApp()),
+      (Route<dynamic> route) => false,
     );
   }
 
@@ -100,7 +97,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.black),
-            onPressed: _logout, // Call the logout function
+            onPressed: _logout,
           ),
         ],
       ),
@@ -171,12 +168,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Create a button with consistent styling
   Widget makeButton(String label, IconData icon, VoidCallback onPressed) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5),
       child: Material(
-        elevation: 5, // Add elevation for shadow effect
+        elevation: 5,
         borderRadius: BorderRadius.circular(50),
         child: MaterialButton(
           minWidth: double.infinity,
