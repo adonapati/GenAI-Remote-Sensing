@@ -5,9 +5,10 @@ import torch.nn as nn
 from torchvision import transforms, models
 import io
 from flask_cors import CORS
+import base64
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 class CropClassificationModel(nn.Module):
     def __init__(self, num_classes=5):
@@ -50,14 +51,18 @@ idx_to_class = {0: 'jute', 1: 'maize', 2: 'rice', 3: 'sugarcane', 4: 'wheat'}
 @app.route('/classify', methods=['POST'])
 def classify_image():
     print("Received a request for classification")
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image file provided'}), 400
-    
-    file = request.files['image']
-    print("Image received")
-    
-    try:
+    if 'image' in request.files:
+        file = request.files['image']
+        print("Image received from file")
         image = Image.open(io.BytesIO(file.read())).convert('RGB')
+    elif 'image_base64' in request.form:
+        image_data = request.form['image_base64']
+        image = Image.open(io.BytesIO(base64.b64decode(image_data))).convert('RGB')
+        print("Image received from base64")
+    else:
+        return jsonify({'error': 'No image file or base64 data provided'}), 400
+
+    try:
         image = transform(image).unsqueeze(0)
         with torch.no_grad():
             output = model(image)
