@@ -188,24 +188,25 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Web Home Layout
-  Widget _buildWebHome() {
-    return Center(
-      child: Container(
-        width: 500,
-        padding: const EdgeInsets.all(40),
-        margin: const EdgeInsets.symmetric(vertical: 50),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 15,
-              spreadRadius: 5,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
+Widget _buildWebHome() {
+  return Center(
+    child: Container(
+      width: 500,
+      padding: const EdgeInsets.all(40),
+      margin: const EdgeInsets.symmetric(vertical: 50),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 15,
+            spreadRadius: 5,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView( // Add SingleChildScrollView here
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -286,8 +287,9 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildImagePreview() {
     if (_image == null && _imageBase64 == null) {
