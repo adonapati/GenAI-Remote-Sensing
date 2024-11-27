@@ -9,14 +9,14 @@ import 'dart:convert'; // For base64 encoding
 import 'main.dart';
 import 'config.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class CropClassification extends StatefulWidget {
+  const CropClassification({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  _CropClassificationState createState() => _CropClassificationState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _CropClassificationState extends State<CropClassification> {
   File? _image;
   String? _imageBase64;
   String? _classificationResult;
@@ -54,7 +54,7 @@ class _HomePageState extends State<HomePage> {
       _isLoading = true;
     });
     try {
-      final uri = Uri.parse(Config.ipAddress);
+      final uri = Uri.parse(Config.cropIP);
       var request = http.MultipartRequest('POST', uri);
 
       if (!kIsWeb) {

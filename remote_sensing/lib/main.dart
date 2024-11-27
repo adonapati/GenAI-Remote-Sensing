@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:remote_sensing/HomePage.dart';
+import 'package:remote_sensing/SelectionPage.dart';
 import 'package:remote_sensing/Login.dart';
 import 'package:remote_sensing/Signup.dart';
 import 'firebase_options.dart';
@@ -48,7 +48,7 @@ class WebLayout extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasData) {
-          return const HomePage();
+          return const SelectionPage();
         }
         return const WebWelcomePage();
       },
@@ -68,7 +68,7 @@ class MobileLayout extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasData) {
-          return const HomePage();
+          return const SelectionPage();
         }
         return const WelcomePage();
       },

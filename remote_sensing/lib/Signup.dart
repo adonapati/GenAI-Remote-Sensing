@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
-import 'package:remote_sensing/HomePage.dart';
+import 'package:remote_sensing/CropClassification.dart';
 import 'package:remote_sensing/config.dart';
 
 class SignupPage extends StatefulWidget {
@@ -314,7 +314,7 @@ class _SignupPageState extends State<SignupPage> {
             SizedBox(height: 24),
             buildNextButton(() {
               _submitUserDetails();
-              HomePage();
+              CropClassification();
             }),
           ],
         ),
@@ -412,7 +412,7 @@ class _SignupPageState extends State<SignupPage> {
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(builder: (context) => CropClassification()),
       );
     } on FirebaseAuthException catch (e) {
       String errorMessage = "An error occurred during registration.";
