@@ -1,16 +1,19 @@
-import cv2
-import numpy as np
-from flask import Flask, Response, request, jsonify, send_file
+from flask import Flask, Response, request, jsonify
 from PIL import Image
-from patchify import patchify
 import torch
 import torch.nn as nn
 from torchvision import transforms, models
 import io
-from keras.models import load_model
-from keras.preprocessing import image
 from flask_cors import CORS
 import base64
+import os
+import base64
+import numpy as np
+import cv2
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from patchify import patchify
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -53,7 +56,7 @@ transform = transforms.Compose([
 
 idx_to_class = {0: 'jute', 1: 'maize', 2: 'rice', 3: 'sugarcane', 4: 'wheat'}
 
-@app.route('/classify_crop', methods=['POST'])
+@app.route('/classify', methods=['POST'])
 def classify_image():
     print("Received a request for classification")
     if 'image' in request.files:
@@ -82,86 +85,126 @@ def classify_image():
         print(f"Error during classification: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+def tversky_loss(y_true, y_pred, alpha=0.7, beta=0.3):
+    smooth = 1e-6
+    y_true_flat = tf.keras.backend.flatten(y_true)
+    y_pred_flat = tf.keras.backend.flatten(y_pred)
+    true_pos = tf.reduce_sum(y_true_flat * y_pred_flat)
+    false_neg = tf.reduce_sum(y_true_flat * (1 - y_pred_flat))
+    false_pos = tf.reduce_sum((1 - y_true_flat) * y_pred_flat)
+    tversky = (true_pos + smooth) / (true_pos + alpha * false_neg + beta * false_pos + smooth)
+    return 1 - tversky
+
+def dice_coef(y_true, y_pred):
+    smooth = 1e-15
+    y_true = tf.keras.layers.Flatten()(y_true)
+    y_pred = tf.keras.layers.Flatten()(y_pred)
+    intersection = tf.reduce_sum(y_true * y_pred)
+    return (2. * intersection + smooth) / (tf.reduce_sum(y_true) + tf.reduce_sum(y_pred) + smooth)
+
+def iou(y_true, y_pred):
+    smooth = 1e-15
+    intersection = tf.reduce_sum(y_true * y_pred)
+    sum_ = tf.reduce_sum(y_true + y_pred)
+    jac = (intersection + smooth) / (sum_ - intersection + smooth)
+    return jac
+
+def sensitivity(y_true, y_pred):
+    true_positives = tf.reduce_sum(tf.round(y_true * y_pred))
+    possible_positives = tf.reduce_sum(tf.round(y_true))
+    return true_positives / (possible_positives + tf.keras.backend.epsilon())
+
+def precision(y_true, y_pred):
+    true_positives = tf.reduce_sum(tf.round(y_true * y_pred))
+    predicted_positives = tf.reduce_sum(tf.round(y_pred))
+    return true_positives / (predicted_positives + tf.keras.backend.epsilon())
+
+def specificity(y_true, y_pred):
+    true_negatives = tf.reduce_sum(tf.round((1 - y_true) * (1 - y_pred)))
+    possible_negatives = tf.reduce_sum(tf.round(1 - y_true))
+    return true_negatives / (possible_negatives + tf.keras.backend.epsilon())
+
+flood_model = load_model("model.keras", custom_objects={
+    'tversky_loss': tversky_loss,
+    'dice_coef': dice_coef,
+    'iou': iou,
+    'sensitivity': sensitivity,
+    'precision': precision,
+    'specificity': specificity
+})
 
 cf = {
     "image_size": 256,
-    "num_channels": 3,
     "patch_size": 16,
-    "flat_patches_shape": (256, 48)  # Updated dynamically later
+    "num_channels": 3,
+    "flat_patches_shape": (
+        (256**2) // (16**2),
+        16 * 16 * 3,
+    )
 }
 
-model = load_model('model.keras', custom_objects={"dice_loss": lambda x, y: x, "dice_coef": lambda x, y: x})
+def preprocess_image_for_flood_detection(image):
+    """Preprocess image for flood detection model."""
+    # Convert PIL Image to numpy array
+    image = np.array(image)
+    
+    # Resize image
+    image = cv2.resize(image, (cf["image_size"], cf["image_size"]))
+    
+    # Normalize pixel values
+    image = image / 255.0
+
+    # Convert to patches
+    patch_shape = (cf["patch_size"], cf["patch_size"], cf["num_channels"])
+    patches = patchify(image, patch_shape, cf["patch_size"])
+    patches = np.reshape(patches, cf["flat_patches_shape"])
+    patches = np.expand_dims(patches, axis=0)  # Add batch dimension
+    
+    return patches
 
 @app.route('/detect_flood', methods=['POST'])
-def flood_prediction():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image provided'}), 400
+def detect_flood():
+    print("Received a request for flood detection")
+    
+    try:
+        # Check for image in request
+        if 'image' in request.files:
+            file = request.files['image']
+            image = Image.open(io.BytesIO(file.read())).convert('RGB')
+            print("Image received from file")
+        elif 'image_base64' in request.form:
+            image_data = request.form['image_base64']
+            image = Image.open(io.BytesIO(base64.b64decode(image_data))).convert('RGB')
+            print("Image received from base64")
+        else:
+            return jsonify({'error': 'No image file or base64 data provided'}), 400
+        
+        # Preprocess image
+        processed_image = preprocess_image_for_flood_detection(image)
+        
+        # Predict
+        prediction = flood_model.predict(processed_image)
+        prediction = np.squeeze(prediction)  # Remove batch dimension
+        prediction = (prediction > 0.5).astype(np.uint8)  # Thresholding
+        
+        # Convert prediction to an image
+        prediction_image = (prediction * 255).astype(np.uint8)
+        prediction_pil = Image.fromarray(prediction_image, mode='L')  # 'L' mode for grayscale
+        
+        # Save to bytes buffer
+        buf = io.BytesIO()
+        prediction_pil.save(buf, format='PNG')
+        buf.seek(0)
+        
+        # Determine flood status
+        flood_detected = np.max(prediction) > 0
+        
+        # Return raw bytes directly
+        return Response(buf.getvalue(), mimetype='image/png')
+    
+    except Exception as e:
+        print(f"Error during flood detection: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
-    img_file = request.files['image']
-
-    # Read the image file into memory
-    img = Image.open(io.BytesIO(img_file.read()))
-    img = img.convert("RGB")  # Ensure the image is in RGB mode
-
-    # Preprocess the image for prediction
-    img = img.resize((cf["image_size"], cf["image_size"]))
-    img_array = np.array(img) / 255.0
-
-    # Patchify the image for model input
-    patch_shape = (cf["patch_size"], cf["patch_size"], cf["num_channels"])
-    patches = patchify(img_array, patch_shape, cf["patch_size"])
-    patches = np.reshape(patches, (-1, patch_shape[0] * patch_shape[1] * cf["num_channels"]))
-    patches = patches.astype(np.float32)
-    patches = np.expand_dims(patches, axis=0)
-
-    # Predict the mask
-    pred = model.predict(patches, verbose=0)[0]
-    pred = np.reshape(pred, (cf["image_size"], cf["image_size"], 1))
-    pred = (pred > 0.5).astype(np.uint8)  # Threshold prediction
-
-    # Find edges of the flood region using Canny edge detection
-    pred_edges = cv2.Canny(pred[:, :, 0] * 255, 100, 200)
-
-    # Make edges thicker using dilation
-    kernel = np.ones((3, 3), np.uint8)  # Define a kernel (3x3 for moderate thickness)
-    thicker_edges = cv2.dilate(pred_edges, kernel, iterations=3)
-
-    # Create a blank RGB image to draw the thicker edges
-    outline_mask = np.zeros((cf["image_size"], cf["image_size"], 3), dtype=np.uint8)
-    outline_mask[:, :, 0] = thicker_edges  # Set the thicker edges to blue
-
-    # Overlay the outline onto the original image
-    img_array = (img_array * 255).astype(np.uint8)  # Convert to uint8
-    combined_image = cv2.addWeighted(img_array, 0.9, outline_mask, 0.3, 0)
-    # pred = model.predict(patches, verbose=0)[0]
-    # pred = np.reshape(pred, (cf["image_size"], cf["image_size"], 1))
-    # pred = (pred > 0.5).astype(np.uint8)  # Threshold prediction
-
-    # # Create a blue mask for flood regions
-    # blue_mask = np.zeros((cf["image_size"], cf["image_size"], 3), dtype=np.uint8)
-    # blue_mask[:, :, 2] = pred[:, :, 0] * 255  # Set blue channel to 255 for flood regions
-
-    # # Overlay the blue mask onto the original image
-    # img_array = (img_array * 255).astype(np.uint8)  # Convert to uint8
-    # combined_image = img_array.copy()
-
-    # # Apply the blue mask only to flood regions
-    # mask_indices = pred[:, :, 0] == 1
-    # combined_image[mask_indices] = (0.7 * img_array[mask_indices] + 0.3 * blue_mask[mask_indices]).astype(np.uint8)
-
-    # Save the combined image to a BytesIO object
-    output = io.BytesIO()
-    combined_pil_image = Image.fromarray(combined_image)
-    combined_pil_image.save(output, format="PNG")
-    output.seek(0)
-    # Save the image in memory and send it as a response
-#     output = BytesIO()
-#     pred_pil_image = Image.fromarray(pred_image)
-#     pred_pil_image.save(output, format="PNG")
-#     output.seek(0)
-
-    # Return the image as a response to the Flutter app
-    return Response(output.getvalue(), mimetype='image/png')
-
-if __name__ == '__main__': 
+if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=7080) 

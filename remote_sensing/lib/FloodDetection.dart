@@ -308,63 +308,149 @@ Future<void> _detectFlood() async {
     );
   }
 
-  Widget _buildImagePreview() {
-    if (_image == null && _imageBase64 == null) {
-      return const Text("No image selected.");
-    }
-
-    return Column(
-      children: [
-        // Original Image
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: kIsWeb
-              ? Image.network(
-                  'data:image/jpeg;base64,$_imageBase64',
-                  height: 200,
-                  fit: BoxFit.cover,
-                )
-              : Image.file(
-                  _image!,
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
-          ),
-        ),
-
-        // Flood Mask Image (if available)
-        if (_floodMaskBase64 != null) ...[
-          const SizedBox(height: 20),
-          const Text(
-            'Flood Mask',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Image.memory(
-                base64Decode(_floodMaskBase64!),
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-        ]
-      ],
-    );
+Widget _buildImagePreview() {
+  if (_image == null && _imageBase64 == null) {
+    return const Text("No image selected.");
   }
+
+  return Column(
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // First Column: User Input and Predicted Flood Mask
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // User Input Image
+                Column(
+                  children: [
+                    const Text(
+                      'User Input',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: kIsWeb
+                          ? Image.network(
+                              'data:image/jpeg;base64,$_imageBase64',
+                              height: 200,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(
+                              _image!,
+                              height: 200,
+                              fit: BoxFit.cover,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Predicted Flood Mask (only if available)
+                if (_floodMaskBase64 != null) ...[
+                  const SizedBox(height: 20), // Spacing between images
+                  const Text(
+                    'Predicted Mask',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Image.memory(
+                        base64Decode(_floodMaskBase64!),
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 20), // Spacing between columns
+
+          // Second Column: Flood Mask from Assets
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Flood Mask',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Image.asset(
+                      'assets/flood_mask.png',
+                      height: 200,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                
+                // "Detected Output" and placeholder only appear after Predicted Mask is available
+                if (_floodMaskBase64 != null) ...[
+                  const SizedBox(height: 20),
+                  Column(
+                    children: [
+                      const Text(
+                        'Detected Output',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          // Placeholder image or any content goes here
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
   Widget makeButton(String label, IconData icon, VoidCallback onPressed) {
     return ElevatedButton.icon(

@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 600) {
-          return const WebLayout(); // Apply the fancier web layout
+          return const WebLayout();
         } else {
           return const MobileLayout();
         }
