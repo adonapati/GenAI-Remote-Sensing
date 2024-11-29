@@ -56,7 +56,7 @@ transform = transforms.Compose([
 
 idx_to_class = {0: 'jute', 1: 'maize', 2: 'rice', 3: 'sugarcane', 4: 'wheat'}
 
-@app.route('/classify', methods=['POST'])
+@app.route('/classify_crop', methods=['POST'])
 def classify_image():
     print("Received a request for classification")
     if 'image' in request.files:

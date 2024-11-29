@@ -54,7 +54,7 @@ class _CropClassificationState extends State<CropClassification> {
       _isLoading = true;
     });
     try {
-      final uri = Uri.parse(Config.cropIP);
+      final uri = Uri.parse('${Config.IPaddress}/classify_crop');
       var request = http.MultipartRequest('POST', uri);
 
       if (!kIsWeb) {

@@ -63,7 +63,7 @@ Future<void> _detectFlood() async {
     _hasFlood = false;
   });
   try {
-    final uri = Uri.parse('${Config.floodIP}');
+    final uri = Uri.parse('${Config.IPaddress}/detect_flood');
     var request = http.MultipartRequest('POST', uri);
 
     if (!kIsWeb) {
