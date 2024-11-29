@@ -162,7 +162,8 @@ def preprocess_image_for_flood_detection(image):
     
     return patches
 
-@app.route('/detect_flood', methods=['POST'])
+@app.route('/detect', methods=['POST'])
+@app.route('/detect', methods=['POST'])
 def detect_flood():
     print("Received a request for flood detection")
     
@@ -170,37 +171,81 @@ def detect_flood():
         # Check for image in request
         if 'image' in request.files:
             file = request.files['image']
-            image = Image.open(io.BytesIO(file.read())).convert('RGB')
+            original_image = Image.open(file).convert('RGB')
             print("Image received from file")
-        elif 'image_base64' in request.form:
-            image_data = request.form['image_base64']
-            image = Image.open(io.BytesIO(base64.b64decode(image_data))).convert('RGB')
-            print("Image received from base64")
         else:
-            return jsonify({'error': 'No image file or base64 data provided'}), 400
+            return jsonify({'error': 'No image file provided'}), 400
+        
+        # Resize input image to match model's expected input size
+        image = original_image.resize((cf["image_size"], cf["image_size"]))
+        
+        # Load ground truth image
+        ground_truth_path = 'groundimage1.png'  # Adjust the filename as needed
+        if os.path.exists(ground_truth_path):
+            ground_truth_original = Image.open(ground_truth_path).convert('RGB')
+            # Resize ground truth to match input image size
+            ground_truth_original = ground_truth_original.resize((cf["image_size"], cf["image_size"]))
+            print("Ground truth image loaded")
+        else:
+            print(f"Ground truth image not found at {ground_truth_path}")
+            # Create a blank ground truth image if file doesn't exist
+            ground_truth_original = Image.new('RGB', (cf["image_size"], cf["image_size"]))
         
         # Preprocess image
         processed_image = preprocess_image_for_flood_detection(image)
+        print("Image preprocessed for flood detection")
         
         # Predict
         prediction = flood_model.predict(processed_image)
+        print("Prediction made by the model")
         prediction = np.squeeze(prediction)  # Remove batch dimension
         prediction = (prediction > 0.5).astype(np.uint8)  # Thresholding
         
-        # Convert prediction to an image
-        prediction_image = (prediction * 255).astype(np.uint8)
-        prediction_pil = Image.fromarray(prediction_image, mode='L')  # 'L' mode for grayscale
+        # Convert prediction to images
+        # Predicted Mask
+        predicted_mask_image = (prediction * 255).astype(np.uint8)
+        predicted_mask_pil = Image.fromarray(predicted_mask_image, mode='L')  # 'L' mode for grayscale
         
-        # Save to bytes buffer
-        buf = io.BytesIO()
-        prediction_pil.save(buf, format='PNG')
-        buf.seek(0)
+        # Ground Truth 
+        ground_truth_array = np.array(ground_truth_original)
+        ground_truth_gray = cv2.cvtColor(ground_truth_array, cv2.COLOR_RGB2GRAY)
+        _, ground_truth_binary = cv2.threshold(ground_truth_gray, 127, 255, cv2.THRESH_BINARY)
+        ground_truth_pil = Image.fromarray(ground_truth_binary, mode='L')
         
-        # Determine flood status
-        flood_detected = np.max(prediction) > 0
+        # Result Image with Circled Flood Areas
+        result_image = np.array(original_image).copy()
+        result_image = cv2.resize(result_image, (cf["image_size"], cf["image_size"]))
         
-        # Return raw bytes directly
-        return Response(buf.getvalue(), mimetype='image/png')
+        # Find contours of flood areas
+        contours, _ = cv2.findContours(predicted_mask_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        cv2.drawContours(result_image, contours, -1, (255, 0, 0), 4)
+        
+        result_image_pil = Image.fromarray(result_image)
+        
+        # Save images to byte buffers
+        ground_truth_buf = io.BytesIO()
+        ground_truth_pil.save(ground_truth_buf, format='PNG')
+        ground_truth_buf.seek(0)
+        
+        predicted_mask_buf = io.BytesIO()
+        predicted_mask_pil.save(predicted_mask_buf, format='PNG')
+        predicted_mask_buf.seek(0)
+        
+        result_image_buf = io.BytesIO()
+        result_image_pil.save(result_image_buf, format='PNG')
+        result_image_buf.seek(0)
+        
+        # Encode images to base64
+        predicted_mask_base64 = base64.b64encode(predicted_mask_buf.getvalue()).decode('utf-8')
+        result_image_base64 = base64.b64encode(result_image_buf.getvalue()).decode('utf-8')
+        
+        # Return JSON with base64 encoded images
+        return jsonify({
+            'predicted_mask': predicted_mask_base64,
+            'result_image': result_image_base64,
+            'flood_detected': bool(np.max(prediction) > 0)
+        })
     
     except Exception as e:
         print(f"Error during flood detection: {str(e)}")
