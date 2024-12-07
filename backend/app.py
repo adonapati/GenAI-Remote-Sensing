@@ -12,6 +12,7 @@ import numpy as np
 import cv2
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+import onnxruntime as ort
 from patchify import patchify
 import matplotlib.pyplot as plt
 
@@ -163,7 +164,6 @@ def preprocess_image_for_flood_detection(image):
     return patches
 
 @app.route('/detect', methods=['POST'])
-@app.route('/detect', methods=['POST'])
 def detect_flood():
     print("Received a request for flood detection")
     
@@ -178,19 +178,7 @@ def detect_flood():
         
         # Resize input image to match model's expected input size
         image = original_image.resize((cf["image_size"], cf["image_size"]))
-        
-        # Load ground truth image
-        ground_truth_path = 'groundimage1.png'  # Adjust the filename as needed
-        if os.path.exists(ground_truth_path):
-            ground_truth_original = Image.open(ground_truth_path).convert('RGB')
-            # Resize ground truth to match input image size
-            ground_truth_original = ground_truth_original.resize((cf["image_size"], cf["image_size"]))
-            print("Ground truth image loaded")
-        else:
-            print(f"Ground truth image not found at {ground_truth_path}")
-            # Create a blank ground truth image if file doesn't exist
-            ground_truth_original = Image.new('RGB', (cf["image_size"], cf["image_size"]))
-        
+                
         # Preprocess image
         processed_image = preprocess_image_for_flood_detection(image)
         print("Image preprocessed for flood detection")
@@ -200,18 +188,12 @@ def detect_flood():
         print("Prediction made by the model")
         prediction = np.squeeze(prediction)  # Remove batch dimension
         prediction = (prediction > 0.5).astype(np.uint8)  # Thresholding
-        
+
         # Convert prediction to images
         # Predicted Mask
         predicted_mask_image = (prediction * 255).astype(np.uint8)
         predicted_mask_pil = Image.fromarray(predicted_mask_image, mode='L')  # 'L' mode for grayscale
-        
-        # Ground Truth 
-        ground_truth_array = np.array(ground_truth_original)
-        ground_truth_gray = cv2.cvtColor(ground_truth_array, cv2.COLOR_RGB2GRAY)
-        _, ground_truth_binary = cv2.threshold(ground_truth_gray, 127, 255, cv2.THRESH_BINARY)
-        ground_truth_pil = Image.fromarray(ground_truth_binary, mode='L')
-        
+
         # Result Image with Circled Flood Areas
         result_image = np.array(original_image).copy()
         result_image = cv2.resize(result_image, (cf["image_size"], cf["image_size"]))
@@ -223,11 +205,7 @@ def detect_flood():
         
         result_image_pil = Image.fromarray(result_image)
         
-        # Save images to byte buffers
-        ground_truth_buf = io.BytesIO()
-        ground_truth_pil.save(ground_truth_buf, format='PNG')
-        ground_truth_buf.seek(0)
-        
+        # Save images to byte buffers        
         predicted_mask_buf = io.BytesIO()
         predicted_mask_pil.save(predicted_mask_buf, format='PNG')
         predicted_mask_buf.seek(0)
@@ -251,5 +229,127 @@ def detect_flood():
         print(f"Error during flood detection: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+def preprocess_sar_image(image_buffer):
+    """
+    Preprocess SAR image for ONNX model with explicit float32 conversion
+    
+    Args:
+        image_buffer (bytes): Input image buffer
+    
+    Returns:
+        numpy.ndarray: Preprocessed image tensor
+    """
+    # Open image
+    image = Image.open(io.BytesIO(image_buffer)).convert('RGB')
+    
+    # Resize to 256x256
+    image = image.resize((256, 256))
+    
+    # Convert to numpy array and explicitly set to float32
+    image_array = np.array(image, dtype=np.float32)
+    
+    # Normalize to [-1, 1] range (Pix2Pix style normalization)
+    mean = np.array([0.5, 0.5, 0.5], dtype=np.float32)
+    std = np.array([0.5, 0.5, 0.5], dtype=np.float32)
+    
+    # Transpose to CHW format
+    image_array = image_array.transpose((2, 0, 1))
+    image_array = (image_array / 255.0 - mean[:, np.newaxis, np.newaxis]) / std[:, np.newaxis, np.newaxis]
+    
+    # Add batch dimension
+    image_array = np.expand_dims(image_array, axis=0)
+    
+    return image_array
+
+def postprocess_sar_image(output_tensor):
+    """
+    Postprocess the colorized SAR image output
+    
+    Args:
+        output_tensor (numpy.ndarray): Model output tensor
+    
+    Returns:
+        numpy.ndarray: Processed image
+    """
+    # Remove batch dimension
+    output_image = output_tensor[0]
+    
+    # Transpose back to HWC
+    output_image = output_image.transpose((1, 2, 0))
+    
+    # Denormalize
+    output_image = (output_image * 0.5 + 0.5) * 255
+    output_image = np.clip(output_image, 0, 255).astype(np.uint8)
+    
+    return output_image
+
+# Initialize ONNX Runtime session
+try:
+    sar_session = ort.InferenceSession("colorization.onnx")
+    print("SAR colorization model loaded successfully")
+    
+    # Print input details for debugging
+    input_info = sar_session.get_inputs()[0]
+    print(f"Input name: {input_info.name}")
+    print(f"Input type: {input_info.type}")
+    print(f"Input shape: {input_info.shape}")
+except Exception as e:
+    print(f"Error loading SAR colorization model: {e}")
+    sar_session = None
+
+@app.route('/colorize', methods=['POST'])
+def colorize_sar_image():
+    """
+    Endpoint for SAR image colorization
+    """
+    print("Received a request for SAR image colorization")
+    
+    if sar_session is None:
+        return jsonify({'error': 'SAR colorization model not loaded'}), 500
+    
+    # Check for image in request
+    if 'image' in request.files:
+        file = request.files['image']
+        image_buffer = file.read()
+        print("Image received from file")
+    elif request.json and 'image' in request.json:
+        # If image is sent as base64 in JSON
+        image_buffer = base64.b64decode(request.json['image'])
+        print("Image received from base64")
+    else:
+        return jsonify({'error': 'No image provided'}), 400
+
+    try:
+        # Preprocess image
+        input_tensor = preprocess_sar_image(image_buffer)
+        
+        # Prepare input for ONNX Runtime
+        input_name = sar_session.get_inputs()[0].name
+        
+        # Run inference
+        outputs = sar_session.run(None, {input_name: input_tensor})
+        
+        # Postprocess image
+        result_image = postprocess_sar_image(outputs[0])
+        
+        # Convert to PIL Image
+        pil_image = Image.fromarray(result_image)
+        
+        # Save to buffer
+        buffer = io.BytesIO()
+        pil_image.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        # Encode to base64
+        colorized_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        return jsonify({
+            'colorizedImage': colorized_base64
+        })
+    
+    except Exception as e:
+        print(f"Error during SAR image colorization: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=7080) 
+    app.run(debug=True, host='0.0.0.0', port=7080)

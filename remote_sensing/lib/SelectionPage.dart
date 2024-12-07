@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:remote_sensing/FloodDetection.dart';
+import 'package:remote_sensing/SARColorization.dart';
 import 'CropClassification.dart'; // Import the CropClassification page
+import 'SARColorization.dart';
 
 class SelectionPage extends StatefulWidget {
   const SelectionPage({super.key});
@@ -36,34 +38,108 @@ class _SelectionPageState extends State<SelectionPage> {
   }
 
   // Mobile Layout
-  Widget _buildMobileLayout() {
-    return SingleChildScrollView(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        height: MediaQuery.of(context).size.height - 50,
-        width: double.infinity,
+Widget _buildMobileLayout() {
+  return SingleChildScrollView(
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      height: MediaQuery.of(context).size.height - 50,
+      width: double.infinity,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Column(
+            children: [
+              Text(
+                'SAR',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 20),
+              Text(
+                "Choose a service to get started",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 15,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          const SizedBox(height: 50),
+          _buildServiceButton(
+            "Crop Classification\n(Deep Learning)",
+            Icons.grass,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CropClassification()),
+            ),
+          ),
+          const SizedBox(height: 30),
+          _buildServiceButton(
+            "Flood Detection\n(GenAI)",
+            Icons.water_damage,
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FloodDetection()),
+              ),
+          ),
+          const SizedBox(height: 30),
+          _buildServiceButton(
+            "SAR Colourization\n(GenAI)",
+            Icons.palette,
+            () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Colorize()),
+              ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+  // Web Layout
+Widget _buildWebLayout() {
+  return Center(
+    child: Container(
+      width: 500,
+      padding: const EdgeInsets.all(40),
+      margin: const EdgeInsets.symmetric(vertical: 50),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 15,
+            spreadRadius: 5,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Column(
-              children: [
-                Text(
-                  'SAR',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  "Choose a service to get started",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 15,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+            const Text(
+              "Agricultural AI Services",
+              style: TextStyle(
+                fontSize: 35,
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 29, 81, 111),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Choose a service to get started",
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 50),
             _buildServiceButton(
@@ -76,84 +152,28 @@ class _SelectionPageState extends State<SelectionPage> {
             ),
             const SizedBox(height: 30),
             _buildServiceButton(
-              "Flood Detection\n(Generative AI)",
+              "Flood Detection\n(GenAI)",
               Icons.water_damage,
-                () => Navigator.push(
+              () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FloodDetection()),
+              ),
+            ),
+            const SizedBox(height: 30),
+            _buildServiceButton(
+              "SAR Colourization (GenAI)",
+              Icons.palette,
+              () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const FloodDetection()),
+                  MaterialPageRoute(builder: (context) => const Colorize()),
                 ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  // Web Layout
-  Widget _buildWebLayout() {
-    return Center(
-      child: Container(
-        width: 500,
-        padding: const EdgeInsets.all(40),
-        margin: const EdgeInsets.symmetric(vertical: 50),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 15,
-              spreadRadius: 5,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "Agricultural AI Services",
-                style: TextStyle(
-                  fontSize: 35,
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 29, 81, 111),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Choose a service to get started",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 50),
-              _buildServiceButton(
-                "Crop Classification\n(Deep Learning)",
-                Icons.grass,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CropClassification()),
-                ),
-              ),
-              const SizedBox(height: 30),
-              _buildServiceButton(
-                "Flood Detection\n(Generative AI)",
-                Icons.water_damage,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const FloodDetection()),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+    ),
+  );
+}
 
   // Service Button Widget
   Widget _buildServiceButton(String label, IconData icon, VoidCallback onPressed) {
