@@ -3,9 +3,9 @@ from PIL import Image
 import torch
 import torch.nn as nn
 from torchvision import transforms, models
+import torchvision
 import io
 from flask_cors import CORS
-import base64
 import base64
 import numpy as np
 import cv2
@@ -13,7 +13,6 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 import onnxruntime as ort
 from patchify import patchify
-import torchvision
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
