@@ -6,7 +6,6 @@ from torchvision import transforms, models
 import io
 from flask_cors import CORS
 import base64
-import os
 import base64
 import numpy as np
 import cv2
@@ -14,7 +13,7 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 import onnxruntime as ort
 from patchify import patchify
-import matplotlib.pyplot as plt
+import torchvision
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -85,6 +84,118 @@ def classify_image():
     except Exception as e:
         print(f"Error during classification: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+class ViTClassifier(nn.Module):
+    def __init__(self, num_classes=5):
+        super(ViTClassifier, self).__init__()
+        # Load pretrained ViT base model
+        self.vit = models.vit_b_16(pretrained=True)
+        
+        # Freeze base parameters
+        for param in self.vit.parameters():
+            param.requires_grad = False
+        
+        # Replace the classification head
+        self.vit.heads = nn.Linear(in_features=768, out_features=num_classes)
+
+    def forward(self, x):
+        return self.vit(x)
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+def loading_model():
+    """
+    Load pre-trained model with device compatibility
+    """
+    # Determine the device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # Create the model architecture
+    model = torchvision.models.vit_b_16(weights=None)  # Use weights=None to address deprecation warning
+    model.heads = torch.nn.Linear(model.hidden_dim, 5)  # Assuming you have num_classes defined
+    
+    # Load state dict with map_location to ensure it works on CPU
+    state_dict = torch.load('vit_crop_pred.pth', map_location=device)
+    
+    # Use weights_only=True for security
+    model.load_state_dict(state_dict)
+    
+    # Set the model to evaluation mode
+    model.eval()
+    
+    return model
+
+def get_class_names():
+    """
+    Return your list of class names
+    """
+    return ["jute","maize","rice","sugarcane","wheat"]  # Replace with your actual class names
+def predict_image(model, image_bytes, class_names, image_size=(224, 224)):
+    """
+    Make prediction on image bytes with confidence
+    """
+    # Open image from bytes
+    img = Image.open(io.BytesIO(image_bytes))
+    
+    # Image transformation
+    image_transform = transforms.Compose([
+        transforms.Resize(image_size),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], 
+            std=[0.229, 0.224, 0.225]
+        ),
+    ])
+    
+    # Transform the image
+    input_tensor = image_transform(img).unsqueeze(0)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # Prepare model
+    model.to(device)
+    model.eval()
+    
+    with torch.inference_mode():
+        # Predict
+        target_image_pred = model(input_tensor.to(device))
+        
+        # Convert logits to probabilities
+        target_image_pred_probs = torch.softmax(target_image_pred, dim=1)
+        
+        # Get the top prediction
+        top_prob, top_class = torch.max(target_image_pred_probs, dim=1)
+        
+        # Return class name and confidence
+        predicted_class = class_names[top_class.item()]
+        confidence = top_prob.item()
+        
+        return predicted_class, confidence
+
+# Load model and class names once when the app starts
+MODEL = loading_model()
+CLASS_NAMES = get_class_names()
+
+@app.route('/vit_classification', methods=['POST'])
+def predict():
+    # Check if image is in the request
+    if 'image' not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+    
+    file = request.files['image']
+    
+    # Read file bytes
+    image_bytes = file.read()
+    
+    try:
+        # Make prediction
+        predictions, confidence = predict_image(MODEL, image_bytes, CLASS_NAMES)
+        
+        return jsonify({
+            "predictions": predictions,
+            "confidence": confidence
+        })
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 def tversky_loss(y_true, y_pred, alpha=0.7, beta=0.3):
     smooth = 1e-6

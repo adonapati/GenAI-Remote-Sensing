@@ -10,7 +10,7 @@ import 'package:remote_sensing/CropClassification.dart';
 import 'package:remote_sensing/config.dart';
 
 class SignupPage extends StatefulWidget {
-  const SignupPage({Key? key}) : super(key: key);
+  const SignupPage({super.key});
 
   @override
   _SignupPageState createState() => _SignupPageState();
@@ -90,16 +90,16 @@ class _SignupPageState extends State<SignupPage> {
   Future<bool> sendEmail(String recipientEmail, String otp) async {
     final smtpServer = gmail(Config.emailUsername, Config.emailPassword);
     final message = Message()
-      ..from = Address(Config.emailUsername, 'Your App Name')
+      ..from = const Address(Config.emailUsername, 'Your App Name')
       ..recipients.add(recipientEmail)
       ..subject = 'Your OTP for SignUp'
       ..text = 'Your OTP is: $otp';
     try {
       final sendReport = await send(message, smtpServer);
-      print('Message sent: ' + sendReport.toString());
+      print('Message sent: $sendReport');
       return true;
     } on MailerException catch (e) {
-      print('Message not sent. \n' + e.toString());
+      print('Message not sent. \n$e');
       return false;
     }
   }
@@ -108,7 +108,7 @@ class _SignupPageState extends State<SignupPage> {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter an email address")),
+        const SnackBar(content: Text("Please enter an email address")),
       );
       return;
     }
@@ -116,12 +116,12 @@ class _SignupPageState extends State<SignupPage> {
     bool emailSent = await sendEmail(email, _emailOtp);
     if (emailSent) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("OTP sent to your email")),
+        const SnackBar(content: Text("OTP sent to your email")),
       );
       nextStep();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to send OTP. Please try again.")),
+        const SnackBar(content: Text("Failed to send OTP. Please try again.")),
       );
     }
   }
@@ -179,12 +179,12 @@ class _SignupPageState extends State<SignupPage> {
     String enteredOtp = _otpControllers.map((controller) => controller.text).join();
     if (enteredOtp == _emailOtp) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Email verified successfully")),
+        const SnackBar(content: Text("Email verified successfully")),
       );
       nextStep();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Invalid OTP. Please try again.")),
+        const SnackBar(content: Text("Invalid OTP. Please try again.")),
       );
     }
   }
@@ -238,7 +238,7 @@ class _SignupPageState extends State<SignupPage> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(6, (index) => _buildOtpField(index)),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             const SizedBox(height: 22),
             buildNextButton(() {
               _verifyOtp(); 
@@ -260,7 +260,7 @@ class _SignupPageState extends State<SignupPage> {
         onChanged: (value) {
           _onOtpChange(value, index);
         },
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           counterText: "",
           border: OutlineInputBorder(),
         ),
@@ -292,29 +292,29 @@ class _SignupPageState extends State<SignupPage> {
           children: [
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(labelText: "Full Name"),
+              decoration: const InputDecoration(labelText: "Full Name"),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: _addressController,
-              decoration: InputDecoration(labelText: "Address"),
+              decoration: const InputDecoration(labelText: "Address"),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
-              decoration: InputDecoration(labelText: "Password"),
+              decoration: const InputDecoration(labelText: "Password"),
               obscureText: true,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: _confirmPasswordController,
-              decoration: InputDecoration(labelText: "Confirm Password"),
+              decoration: const InputDecoration(labelText: "Confirm Password"),
               obscureText: true,
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             buildNextButton(() {
               _submitUserDetails();
-              CropClassification();
+              const CropClassification();
             }),
           ],
         ),
@@ -342,10 +342,10 @@ class _SignupPageState extends State<SignupPage> {
       final responseData = json.decode(response.body);
       if (responseData['messages'][0]['status'] == '0') {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("OTP sent successfully")),
+          const SnackBar(content: Text("OTP sent successfully")),
         );
         _pageController.nextPage(
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
         );
       } else {
@@ -355,7 +355,7 @@ class _SignupPageState extends State<SignupPage> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to send OTP. Please try again.")),
+        const SnackBar(content: Text("Failed to send OTP. Please try again.")),
       );
     }
   }
@@ -376,15 +376,15 @@ class _SignupPageState extends State<SignupPage> {
     String enteredOtp = _otpControllers.map((controller) => controller.text).join();
     if (enteredOtp == _generatedOtp) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("OTP verified successfully")),
+        const SnackBar(content: Text("OTP verified successfully")),
       );
       _pageController.nextPage(
-        duration: Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Invalid OTP. Please try again.")),
+        const SnackBar(content: Text("Invalid OTP. Please try again.")),
       );
     }
   }
@@ -392,7 +392,7 @@ class _SignupPageState extends State<SignupPage> {
   void _submitUserDetails() async {
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Passwords do not match")),
+        const SnackBar(content: Text("Passwords do not match")),
       );
       return;
     }
@@ -408,11 +408,11 @@ class _SignupPageState extends State<SignupPage> {
         'address': _addressController.text,
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User registered successfully")),
+        const SnackBar(content: Text("User registered successfully")),
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => CropClassification()),
+        MaterialPageRoute(builder: (context) => const CropClassification()),
       );
     } on FirebaseAuthException catch (e) {
       String errorMessage = "An error occurred during registration.";
@@ -494,7 +494,7 @@ class _SignupPageState extends State<SignupPage> {
     return Scaffold(
       body: PageView(
         controller: _pageController,
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         children: [
           emailInputStep(),
           emailOtpVerificationStep("Email Verification", "Enter the OTP sent to your email"),

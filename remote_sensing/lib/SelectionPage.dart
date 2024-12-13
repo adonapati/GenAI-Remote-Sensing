@@ -3,6 +3,7 @@ import 'package:remote_sensing/FloodDetection.dart';
 import 'package:remote_sensing/SARColorization.dart';
 import 'CropClassification.dart'; // Import the CropClassification page
 import 'SARColorization.dart';
+import 'VitCrop.dart';
 
 class SelectionPage extends StatefulWidget {
   const SelectionPage({super.key});
@@ -76,9 +77,19 @@ Widget _buildMobileLayout() {
               MaterialPageRoute(builder: (context) => const CropClassification()),
             ),
           ),
+          const SizedBox(height: 50),
+          _buildServiceButton(
+            "Crop Classification\n(Vision Transformers)",
+            Icons.local_florist,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const VitCrop()),
+            ),
+          ),
+
           const SizedBox(height: 30),
           _buildServiceButton(
-            "Flood Detection\n(GenAI)",
+            "Flood Detection\n(Generative AI)",
             Icons.water_damage,
               () => Navigator.push(
                 context,
@@ -87,7 +98,7 @@ Widget _buildMobileLayout() {
           ),
           const SizedBox(height: 30),
           _buildServiceButton(
-            "SAR Colourization\n(GenAI)",
+            "SAR Colourization\n(Generative AI)",
             Icons.palette,
             () => Navigator.push(
                 context,

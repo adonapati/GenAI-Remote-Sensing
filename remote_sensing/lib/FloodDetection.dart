@@ -159,17 +159,17 @@ class _FloodDetectionState extends State<FloodDetection> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Column(
+            const Column(
               children: [
-                const Text(
+                Text(
                   'Flood Detection',
                   style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
+                SizedBox(height: 20),
+                Text(
                   "Upload an image to detect flood risks.",
                   style: TextStyle(
                     color: Colors.grey,
@@ -217,12 +217,12 @@ class _FloodDetectionState extends State<FloodDetection> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: Colors.black12,
               blurRadius: 15,
               spreadRadius: 5,
-              offset: const Offset(0, 10),
+              offset: Offset(0, 10),
             ),
           ],
         ),
