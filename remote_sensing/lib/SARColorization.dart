@@ -141,45 +141,51 @@ class _ColorizeState extends State<Colorize> {
   // Mobile Home Layout
   Widget _buildMobileHome() {
     return SingleChildScrollView(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        height: MediaQuery.of(context).size.height - 50,
-        width: double.infinity,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            const Column(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height - 50,
+        ),
+        child: IntrinsicHeight(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            width: double.infinity,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Text(
-                  'SAR Image Colorization',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const Column(
+                  children: [
+                    Text(
+                      'SAR Image Colorization',
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      "Upload a SAR image to colorize.",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 15,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-                SizedBox(height: 20),
-                Text(
-                  "Upload a SAR image to colorize.",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 15,
-                  ),
-                  textAlign: TextAlign.center,
+                Column(
+                  children: [
+                    _buildImagePreview(),
+                    const SizedBox(height: 20),
+                    makeButton("Select Image", Icons.image, _pickImage),
+                    const SizedBox(height: 20),
+                    makeButton("Colorize", Icons.color_lens, _colorizeImage),
+                  ],
                 ),
+                if (_isLoading)
+                  const CircularProgressIndicator()
               ],
             ),
-            Column(
-              children: [
-                _buildImagePreview(),
-                const SizedBox(height: 20),
-                makeButton("Select Image", Icons.image, _pickImage),
-                const SizedBox(height: 20),
-                makeButton("Colorize", Icons.color_lens, _colorizeImage),
-              ],
-            ),
-            if (_isLoading)
-              const CircularProgressIndicator()
-          ],
+          ),
         ),
       ),
     );
@@ -279,90 +285,125 @@ class _ColorizeState extends State<Colorize> {
   }
 
   Widget _buildImagePreview() {
-    if (_image == null && _imageBase64 == null) {
-      return const Text("No image selected.");
+      if (_image == null && _imageBase64 == null) {
+        return const Text("No image selected.");
+      }
+
+      return Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // First Column: Original Image
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Original Image',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: kIsWeb
+                          ? Image.network(
+                              'data:image/jpeg;base64,$_imageBase64',
+                              height: 200,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(
+                              _image!,
+                              height: 200,
+                              fit: BoxFit.cover,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 20), // Spacing between columns
+
+              // Second Column: Ground Truth Image
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Ground Truth',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: _image != null || _imageBase64 != null
+                          ? Image.asset(
+                              'assets/color_mask.jpeg',
+                              height: 200,
+                              fit: BoxFit.cover,
+                            )
+                          : const Text("No ground truth", style: TextStyle(color: Colors.grey)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 20), // Spacing between rows
+          
+          // Third Row: Colorized Image
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'Colorized Image',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: _colorizedImageBase64 != null
+                    ? Image.memory(
+                        base64Decode(_colorizedImageBase64!),
+                        height: 300, // Increased height to make it more prominent
+                        fit: BoxFit.cover,
+                      )
+                    : const Text("Waiting to colorize", style: TextStyle(color: Colors.grey)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
     }
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Original Image',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: kIsWeb
-                        ? Image.network(
-                            'data:image/jpeg;base64,$_imageBase64',
-                            height: 200,
-                            fit: BoxFit.cover,
-                          )
-                        : Image.file(
-                            _image!,
-                            height: 200,
-                            fit: BoxFit.cover,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 20), // Spacing between columns
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Colorized Image',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: _colorizedImageBase64 != null
-                        ? Image.memory(
-                            base64Decode(_colorizedImageBase64!),
-                            height: 200,
-                            fit: BoxFit.cover,
-                          )
-                        : const Text("Waiting to colorize", style: TextStyle(color: Colors.grey)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
+    
   Widget makeButton(String label, IconData icon, VoidCallback onPressed) {
     return ElevatedButton.icon(
       onPressed: onPressed,

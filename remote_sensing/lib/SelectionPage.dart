@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:remote_sensing/FloodDetection.dart';
 import 'package:remote_sensing/SARColorization.dart';
 import 'CropClassification.dart'; // Import the CropClassification page
-import 'SARColorization.dart';
 import 'VitCrop.dart';
 
 class SelectionPage extends StatefulWidget {
