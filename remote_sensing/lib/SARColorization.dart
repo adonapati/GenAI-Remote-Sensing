@@ -389,16 +389,27 @@ class _ColorizeState extends State<Colorize> {
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: _colorizedImageBase64 != null
-                    ? Image.memory(
-                        base64Decode(_colorizedImageBase64!),
-                        height: 300, // Increased height to make it more prominent
-                        fit: BoxFit.cover,
-                      )
-                    : const Text("Waiting to colorize", style: TextStyle(color: Colors.grey)),
-                ),
+                child: _colorizedImageBase64 != null
+                  ? Image.memory(
+                      base64Decode(_colorizedImageBase64!),
+                      height: 300, // Increased height to make it more prominent
+                      fit: BoxFit.cover,
+                    )
+                  : const Text("Waiting to colorize", style: TextStyle(color: Colors.grey)),                ),
               ),
             ],
+          ),
+          // Add this just after the Colorized Image column
+          const SizedBox(height: 20),
+          if(_colorizedImageBase64!=null)
+          const Text(
+            'FID Score: 175.24705382650222',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 29, 81, 111),
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       );
